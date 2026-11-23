@@ -190,8 +190,9 @@ Public leaderboards, infinite social feed, financial penalties, habit trees, ope
 - **Home rule (`/squad` with no squad chosen):** no squads → join/create; exactly one → that squad opens directly; two or more → the "Your squads" list, where you pick.
 - A specific squad is `/squad?id=<squad id>`. The back arrow on a squad goes to `/squads`. Settings is `/squad/settings?id=…`.
 - "Your squads" lists each squad with who's in it, plus `Start another squad` and `Join a squad with a code`.
-- Goals, weeks, activity, nudges and the Sunday prompt are all per squad. A goal in one squad never appears in another; carry-over stays within a squad.
+- Goals, weeks, activity, nudges and the Sunday prompt are all per squad. A goal in one squad never appears in another; carry-over stays within a squad. Copying goals across (below) makes new, separate goals; the two never stay linked.
 - Notifications open the squad they are about (their link carries the squad id).
+- **Copy goals from another squad:** in a week you can still plan, if you're in two or more squads, your card has `Copy goals from another squad`. Pick the squad (skipped when there's only one other), see your goals there for the same week (`week_start_date`), cross off any, then add the rest. Finished goals are offered too (it copies the plan, not the progress); counts start at zero; titles already here are left out. Nothing is created until you tap add, and added goals are ordinary goals here (feed, notifications, you still lock in). Logic: `importCandidates` in `lib/domain/carry-over.ts`; UI: `components/app/import-goals.tsx`.
 - Leaving a squad returns you to home, which applies the home rule again.
 
 ### Password reset

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeftIcon, HistoryIcon, PlusIcon, SettingsIcon } from "lucide-react";
+import { ArrowLeftIcon, CopyIcon, HistoryIcon, PlusIcon, SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useSquadWeek, type WeekChoice } from "@/hooks/use-squad-week";
@@ -27,6 +27,7 @@ import { ActivityFeed } from "./activity-feed";
 import { CarryOverList, useDismissedCarryOvers } from "./carry-over";
 import { Card, PageError, PageSkeleton, ProgressBar, ProgressRing, Segmented } from "./bits";
 import { GoalEditor } from "./goal-editor";
+import { ImportGoalsSheet } from "./import-goals";
 import { FriendGoalRow, MyGoalRow } from "./goal-row";
 import { InviteSheet } from "./invite-sheet";
 import { NotificationsCard } from "./notifications-card";
@@ -127,6 +128,7 @@ export function Dashboard() {
     goal: null,
   });
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [lockingIn, setLockingIn] = useState(false);
   const { dismissed, dismiss } = useDismissedCarryOvers();
 
@@ -163,11 +165,12 @@ export function Dashboard() {
     state.nextWeekPlanned === false &&
     isSundayInZone(now, squad.timezone);
 
-  async function addCarryOvers(items: CarryOver[]) {
+  async function addGoals(items: CarryOver[]): Promise<boolean> {
     const ok = await run(async (store) => {
       for (const item of items) await store.createGoal(squad.id, weekStart, item.input);
     });
     if (ok) toast.success(items.length === 1 ? "Goal added" : `${items.length} goals added`);
+    return ok;
   }
 
   async function saveGoal(input: GoalInput): Promise<boolean> {
@@ -329,7 +332,7 @@ export function Dashboard() {
           }
           items={carryOvers}
           onDismiss={dismiss}
-          onAdd={addCarryOvers}
+          onAdd={async (items) => void (await addGoals(items))}
         />
 
         {!closed && (
@@ -343,6 +346,17 @@ export function Dashboard() {
               <PlusIcon className="size-4" />
               Add a goal
             </Button>
+            {state.otherSquads.length > 0 && (
+              <Button
+                variant="ghost"
+                size="touch"
+                className="w-full"
+                onClick={() => setImportOpen(true)}
+              >
+                <CopyIcon className="size-4" />
+                Copy goals from another squad
+              </Button>
+            )}
             {unlocked > 0 && (
               <Button size="touch" className="w-full" disabled={lockingIn} onClick={lockIn}>
                 {lockingIn
@@ -397,6 +411,16 @@ export function Dashboard() {
         weekLabel={weekLabel}
         onSave={saveGoal}
         onDelete={deleteGoal}
+      />
+      <ImportGoalsSheet
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        squads={state.otherSquads}
+        myId={session.userId}
+        weekStart={weekStart}
+        weekLabel={weekLabel}
+        myGoals={myGoals}
+        onAdd={addGoals}
       />
       <InviteSheet
         open={inviteOpen}

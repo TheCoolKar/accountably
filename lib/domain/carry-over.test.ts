@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { carryOverCandidates } from "./carry-over";
+import { carryOverCandidates, importCandidates } from "./carry-over";
 import type { Goal } from "./types";
 
 let next = 0;
@@ -74,5 +74,29 @@ describe("carryOverCandidates", () => {
 
   it("offers nothing when there was no week before", () => {
     expect(carryOverCandidates([], [], new Set())).toEqual([]);
+  });
+});
+
+describe("importCandidates", () => {
+  it("offers finished and unfinished goals, with every count back at zero", () => {
+    const other = [
+      goal({ title: "Gym", goalType: "counted", targetCount: 3, completedCount: 3, unitLabel: "sessions" }),
+      goal({ title: "Call the bank" }),
+    ];
+    expect(importCandidates(other, []).map((c) => c.input)).toEqual([
+      { title: "Gym", description: null, goalType: "counted", targetCount: 3, unitLabel: "sessions" },
+      { title: "Call the bank", description: null, goalType: "one_time", targetCount: 1, unitLabel: null },
+    ]);
+  });
+
+  it("skips titles already in this squad's week, whatever the capitalisation", () => {
+    const other = [goal({ title: "Gym" }), goal({ title: "Meal prep" })];
+    const here = [goal({ title: "  GYM", squadId: "other" })];
+    expect(importCandidates(other, here).map((c) => c.input.title)).toEqual(["Meal prep"]);
+  });
+
+  it("offers a repeated title once, and nothing when the other squad is empty", () => {
+    expect(importCandidates([goal({ title: "Gym" }), goal({ title: "gym" })], [])).toHaveLength(1);
+    expect(importCandidates([], [])).toEqual([]);
   });
 });

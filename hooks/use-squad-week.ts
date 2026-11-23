@@ -9,6 +9,7 @@ import {
   StoreError,
   type ConnectionStatus,
   type Session,
+  type SquadSummary,
   type Store,
 } from "@/lib/data";
 import { clampCount } from "@/lib/domain/goal";
@@ -41,6 +42,8 @@ export type SquadWeekState =
        * for next week. `null` when it wasn't checked.
        */
       nextWeekPlanned: boolean | null;
+      /** My other squads, for copying goals across. */
+      otherSquads: SquadSummary[];
       /** The moment the snapshot was fetched. Used for anything time-dependent. */
       now: Date;
     };
@@ -112,6 +115,7 @@ export function useSquadWeek(week: WeekChoice, requestedSquadId: string | null =
         week,
         previousGoals: previous.goals.filter(mine),
         nextWeekPlanned: next ? next.goals.some(mine) : null,
+        otherSquads: squads.filter((candidate) => candidate.id !== squad.id),
         now,
       });
     } catch (error) {
