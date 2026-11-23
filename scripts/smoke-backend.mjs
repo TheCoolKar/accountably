@@ -329,6 +329,27 @@ try {
     check("never notifies the person who did it", (own.data ?? []).length === 0);
   }
 
+  // Progress follows you across squads: the same goal (title, type, target)
+  // in the same week of another of your squads gets the same count.
+  const s2 = await a.client.rpc("create_squad", { p_name: `Smoke ${run} two`, p_timezone: "Europe/London" });
+  const w2 = await a.client.rpc("ensure_week", { p_squad_id: s2.data, p_week_start: weekStart });
+  const inS2 = (extra) => ({
+    week_id: w2.data, squad_id: s2.data, owner_id: a.id, goal_type: "counted", target_count: 3, ...extra,
+  });
+  const here = await a.client.from("goals").insert(goalRow(a.id, { title: "Sync", goal_type: "counted", target_count: 3 })).select("id").single();
+  const there = await a.client.from("goals").insert(inS2({ title: " sync " })).select("id").single();
+  const otherTarget = await a.client.from("goals").insert(inS2({ title: "Sync", target_count: 5 })).select("id").single();
+  const mates = await b.client.from("goals").insert(goalRow(b.id, { title: "Sync", goal_type: "counted", target_count: 3 })).select("id").single();
+  const countOf = async (client, id) => (await client.from("goals").select("completed_count").eq("id", id).single()).data?.completed_count;
+  await a.client.from("goals").update({ completed_count: 2 }).eq("id", here.data.id);
+  check("a step is copied to the same goal in my other squad", (await countOf(a.client, there.data.id)) === 2);
+  check("a goal with a different target is left alone", (await countOf(a.client, otherTarget.data.id)) === 0);
+  check("a squadmate's goal with the same title is left alone", (await countOf(b.client, mates.data.id)) === 0);
+  await a.client.from("goals").update({ completed_count: 3 }).eq("id", there.data.id);
+  check("it works in both directions", (await countOf(a.client, here.data.id)) === 3);
+  const s2Feed = await a.client.from("activity_events").select("event_type").eq("goal_id", there.data.id);
+  check("the other squad sees it in its feed", (s2Feed.data ?? []).some((row) => row.event_type === "progress_updated"));
+
   // Owner-only and leaving
   const renameByB = await b.client.from("squads").update({ name: "Hijacked" }).eq("id", squadId).select("id");
   check("member cannot rename the squad", renameByB.data?.length === 0);
